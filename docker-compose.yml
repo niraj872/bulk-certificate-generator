@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: certificates
+      POSTGRES_USER: certificates
+      POSTGRES_PASSWORD: certificates
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U certificates -d certificates"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://certificates:certificates@db:5432/certificates
+      STORAGE_PATH: /app/storage
+      MAX_RECIPIENTS: 1000
+      WORKER_POLL_SECONDS: 2
+      JOB_STALE_SECONDS: 300
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+      LOG_LEVEL: INFO
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - certificate_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://certificates:certificates@db:5432/certificates
+      STORAGE_PATH: /app/storage
+      MAX_RECIPIENTS: 1000
+      WORKER_POLL_SECONDS: 2
+      JOB_STALE_SECONDS: 300
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+      LOG_LEVEL: INFO
+    command: python -m app.workers.worker
+    volumes:
+      - certificate_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  certificate_storage:
