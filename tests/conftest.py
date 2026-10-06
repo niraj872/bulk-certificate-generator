@@ -1,7 +1,7 @@
 import os
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///./test_bulk_certificates.db?check_same_thread=false")
-os.environ.setdefault("STORAGE_PATH", "./test_storage")
+os.environ["DATABASE_URL"] = "sqlite:///./test_bulk_certificates.db?check_same_thread=false"
+os.environ["STORAGE_PATH"] = "./test_storage"
 os.environ.setdefault("MAX_RECIPIENTS", "1000")
 os.environ.setdefault("WORKER_POLL_SECONDS", "0.1")
 os.environ.setdefault("JOB_STALE_SECONDS", "30")
@@ -37,3 +37,4 @@ def db():
         yield session
     finally:
         session.close()
+
